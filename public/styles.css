@@ -22,6 +22,7 @@ body {
   padding: 8px 12px;
   cursor: pointer;
   border-radius: 4px;
+  width: auto;
 }
 
 .lang-switch button.active {
@@ -37,6 +38,10 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 1000;
+}
+
+.modal.hidden {
+  display: none !important;
 }
 
 .modal-content {
@@ -75,6 +80,7 @@ body {
   text-align: center;
   max-width: 500px;
   width: 100%;
+  margin-top: 20px;
 }
 
 .lobby-actions {
@@ -113,7 +119,9 @@ button:hover {
 
 .hidden { display: none !important; }
 
-.tabata-card {
+/* Карточка в стиле Uno / Tabata с углами и овалом в центре */
+.tabata-card, .card {
+  position: relative;
   width: 130px;
   height: 180px;
   background: #ff4081;
@@ -127,40 +135,66 @@ button:hover {
   touch-action: manipulation;
   transition: transform 0.2s, box-shadow 0.2s;
   user-select: none;
-  padding: 10px;
 }
 
-.tabata-card:hover {
+.tabata-card:hover, .card:hover {
   transform: translateY(-8px) scale(1.03);
   box-shadow: 0 10px 20px rgba(233, 30, 99, 0.6);
 }
 
+/* Цифры на четырех углах карточки */
+.corner-top-left, .corner-top-right, .corner-bottom-left, .corner-bottom-right {
+  position: absolute;
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffffff;
+  padding: 6px;
+  z-index: 2;
+}
+
+.corner-top-left { top: 2px; left: 4px; }
+.corner-top-right { top: 2px; right: 4px; transform: rotate(180deg); } /* Перевернутые цифры для удобства сидящих напротив */
+.corner-bottom-left { bottom: 2px; left: 4px; transform: rotate(180deg); }
+.corner-bottom-right { bottom: 2px; right: 4px; }
+
+/* Центральный овал с уравнением */
 .equation-oval {
-  width: 90%;
-  height: 80%;
-  border: 3px solid #fff;
+  width: 78%;
+  height: 70%;
+  border: 2px solid #fff;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 8px;
+  padding: 6px;
   font-weight: bold;
-  font-size: 13px;
-  background: rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  word-break: break-all;
 }
 
+.equation-text {
+  font-size: 13px;
+  text-align: center;
+  color: #ffffff;
+  padding: 0 10px;
+  font-weight: bold;
+}
+
+/* Сетка для карт на руках у игрока */
 .grid-hand {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
-  max-width: 750px;
-  margin: 0 auto;
+  max-width: 800px;
+  margin: 15px auto;
 }
 
 .table-center {
-  margin: 10px 0;
+  margin: 15px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -179,11 +213,11 @@ button:hover {
   margin-bottom: 15px;
   font-size: 14px;
   color: #e0b0ff;
-  background: rgba(0,0,0,0.2);
+  background: rgba(0,0,0,0.3);
   padding: 8px 15px;
   border-radius: 8px;
 }
 
 .player-badge {
-  margin: 0 5px;
+  margin: 0 6px;
 }

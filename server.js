@@ -8,147 +8,174 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
-// Расширенная база из 24 карточек с квадратными уравнениями и корнями
-const ALL_CARDS = [
-  { id: 1, eq: "25x² + 21x - 4 = 0", answers: [-1, 0.16] },
-  { id: 2, eq: "2x² + 7x + 6 = 0", answers: [-2, -1.5] },
-  { id: 3, eq: "x² + x - 20 = 0", answers: [-5, 4] },
-  { id: 4, eq: "2x² - 6x + 4 = 0", answers: [1, 2] },
-  { id: 5, eq: "x² - 16x + 48 = 0", answers: [4, 12] },
-  { id: 6, eq: "2x² + 3x + 1 = 0", answers: [-1, -0.5] },
-  { id: 7, eq: "x² - 6x + 5 = 0", answers: [1, 5] },
-  { id: 8, eq: "5x² + 14x + 8 = 0", answers: [-2, -0.8] },
-  { id: 9, eq: "x² + 5x - 24 = 0", answers: [-8, 3] },
-  { id: 10, eq: "x² - 4x - 12 = 0", answers: [-2, 6] },
-  { id: 11, eq: "x² - 12x + 27 = 0", answers: [3, 9] },
-  { id: 12, eq: "5x² - 17x + 6 = 0", answers: [0.4, 3] },
-  { id: 13, eq: "x² - 9x + 20 = 0", answers: [4, 5] },
-  { id: 14, eq: "3x² + 10x + 3 = 0", answers: [-3, -0.33] },
-  { id: 15, eq: "x² - 7x + 10 = 0", answers: [2, 5] },
-  { id: 16, eq: "4x² - 9 = 0", answers: [-1.5, 1.5] },
-  { id: 17, eq: "x² + 8x + 15 = 0", answers: [-5, -3] },
-  { id: 18, eq: "2x² - 5x - 3 = 0", answers: [-0.5, 3] },
-  { id: 19, eq: "x² - 2x - 15 = 0", answers: [-3, 5] },
-  { id: 20, eq: "3x² + 7x + 2 = 0", answers: [-2, -0.33] },
-  { id: 21, eq: "x² - 11x + 24 = 0", answers: [3, 8] },
-  { id: 22, eq: "x² + 4x - 12 = 0", answers: [-6, 2] },
-  { id: 23, eq: "2x² + 5x + 2 = 0", answers: [-2, -0.5] },
-  { id: 24, eq: "x² - 8x + 12 = 0", answers: [2, 6] }
-];
-
-function shuffle(array) {
-  return array.sort(() => Math.random() - 0.5);
-}
-
 const rooms = {};
 
-io.on('connection', (socket) => {
-  socket.on('createRoom', ({ maxPlayers, playerName }) => {
-    const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-    rooms[roomId] = {
-      maxPlayers: parseInt(maxPlayers),
-      players: [{ id: socket.id, name: playerName, hand: [], penalizedUntil: 0 }],
-      centerCard: null,
-      started: false
-    };
-    socket.join(roomId);
-    socket.emit('roomCreated', { roomId, players: rooms[roomId].players });
-  });
+// Список готовых уравнений с их корнями для карточек
+const cardTemplates = [
+    { equation: "x² - 6x + 5 = 0", answers: [1, 5], displayNumber: "1" },
+    { equation: "5x² + 14x + 8 = 0", answers: [-0.8, -2], displayNumber: "1" },
+    { equation: "-7x² + 3x + 4 = 0", answers: [1, -4/7], displayNumber: "3" },
+    { equation: "x² - 4x - 12 = 0", answers: [6, -2], displayNumber: "3" },
+    { equation: "6x² + 5x - 4 = 0", answers: [0.5, -4/3], displayNumber: "4" },
+    { equation: "x² + 5x - 24 = 0", answers: [3, -8], displayNumber: "0.5" },
+    { equation: "-10x² - 7x + 3 = 0", answers: [-1, 0.3], displayNumber: "-2" },
+    { equation: "x² - 8x + 16 = 0", answers: [4, 4], displayNumber: "-1" },
+    { equation: "x² - 12x + 27 = 0", answers: [9, 3], displayNumber: "1,5" },
+    { equation: "2x² - 5x + 2 = 0", answers: [2, 0.5], displayNumber: "2" },
+    { equation: "x² + 7x + 10 = 0", answers: [-2, -5], displayNumber: "-2" },
+    { equation: "3x² - 10x + 3 = 0", answers: [3, 1/3], displayNumber: "3" },
+    { equation: "x² - 9 = 0", answers: [3, -3], displayNumber: "3" },
+    { equation: "4x² - 9 = 0", answers: [1.5, -1.5], displayNumber: "4" },
+    { equation: "x² + 6x + 9 = 0", answers: [-3, -3], displayNumber: "-3" },
+    { equation: "2x² + 3x - 2 = 0", answers: [0.5, -2], displayNumber: "2" },
+    { equation: "x² - x - 20 = 0", answers: [5, -4], displayNumber: "-5" },
+    { equation: "x² + 2x - 15 = 0", answers: [3, -5], displayNumber: "3" },
+    { equation: "5x² - 6x + 1 = 0", answers: [1, 0.2], displayNumber: "1" },
+    { equation: "x² - 7x + 12 = 0", answers: [4, 3], displayNumber: "4" },
+    { equation: "x² + 4x - 5 = 0", answers: [1, -5], displayNumber: "1" },
+    { equation: "3x² + 7x + 2 = 0", answers: [-1/3, -2], displayNumber: "-2" },
+    { equation: "x² - 2x - 8 = 0", answers: [4, -2], displayNumber: "4" },
+    { equation: "2x² + 5x + 2 = 0", answers: [-0.5, -2], displayNumber: "-0,5" }
+];
 
-  socket.on('joinRoom', ({ roomId, playerName }) => {
-    const room = rooms[roomId];
-    if (!room) return socket.emit('notification', 'Бөлме табылмады / Комната не найдена');
-    if (room.started) return socket.emit('notification', 'Ойын басталып кетті / Игра уже началась');
-    if (room.players.length >= room.maxPlayers) return socket.emit('notification', 'Бөлме толы / Комната заполнена');
-
-    room.players.push({ id: socket.id, name: playerName, hand: [], penalizedUntil: 0 });
-    socket.join(roomId);
-
-    socket.emit('joinedRoom', { roomId, players: room.players });
-    socket.to(roomId).emit('playerJoined', { players: room.players });
-  });
-
-  socket.on('startGameHost', ({ roomId }) => {
-    const room = rooms[roomId];
-    if (!room) return;
-    if (room.players[0].id === socket.id) {
-      room.started = true;
-      
-      // Раздаем ровно 24 карты поровну всем игрокам
-      const shuffledDeck = shuffle([...ALL_CARDS]);
-      const countPerPlayer = Math.floor(shuffledDeck.length / room.players.length);
-      
-      room.players.forEach((player, index) => {
-        player.hand = shuffledDeck.slice(index * countPerPlayer, (index + 1) * countPerPlayer);
-      });
-
-      // Остаток карт (если есть) можно положить в центр или взять первую
-      room.centerCard = shuffledDeck[room.players.length * countPerPlayer] || shuffledDeck[0];
-
-      updateGameState(roomId);
-    } else {
-      socket.emit('notification', 'Тек бөлме иесі бастай алады');
-    }
-  });
-
-  socket.on('submitCard', ({ roomId, cardId }) => {
-    const room = rooms[roomId];
-    if (!room || !room.started) return;
-
-    const player = room.players.find(p => p.id === socket.id);
-    if (!player) return;
-
-    const now = Date.now();
-    if (now < player.penalizedUntil) {
-      const remainingSec = Math.ceil((player.penalizedUntil - now) / 1000);
-      return socket.emit('notification', `Айыппұл! ${remainingSec} секунд күтіңіз / Штраф! Ждите.`);
-    }
-
-    const cardIndex = player.hand.findIndex(c => c.id === cardId);
-    if (cardIndex === -1) return;
-
-    const selectedCard = player.hand[cardIndex];
-
-    // Проверяем совпадение ответов/корней с центральной картой
-    const centerAnswers = room.centerCard.answers;
-    const selectedAnswers = selectedCard.answers;
-    const hasMatch = selectedAnswers.some(ans => centerAnswers.includes(ans));
-
-    if (hasMatch) {
-      // Игрок успешно скидывает карту на центр
-      player.hand.splice(cardIndex, 1);
-      room.centerCard = selectedCard;
-
-      // Проверяем условие победы (если карт не осталось)
-      if (player.hand.length === 0) {
-        io.to(roomId).emit('gameOver', { winner: player.name });
-        delete rooms[roomId];
-        return;
-      }
-
-      updateGameState(roomId);
-    } else {
-      // Ошибка: карта не подходит — штраф 3 секунды
-      player.penalizedUntil = Date.now() + 3000;
-      socket.emit('notification', 'Қате карточка! Сәйкес келмейді / Неверная карта! Штраф 3 сек.');
-    }
-  });
-});
-
-function updateGameState(roomId) {
-  const room = rooms[roomId];
-  if (!room) return;
-
-  room.players.forEach(player => {
-    io.to(player.id).emit('gameStateUpdate', {
-      centerCard: room.centerCard,
-      myHand: player.hand,
-      playersStatus: room.players.map(p => ({ name: p.name, cardsLeft: p.hand.length }))
-    });
-  });
+function generateDeck() {
+    let deck = cardTemplates.map((template, index) => ({
+        id: index + 1,
+        equation: template.equation,
+        answers: template.answers, // массив правильных корней на углах
+        displayNumber: template.displayNumber
+    }));
+    // Перемешиваем колоду
+    return deck.sort(() => Math.random() - 0.5);
 }
 
+io.on('connection', (socket) => {
+    console.log(`Игрок подключился: ${socket.id}`);
+
+    // Создание комнаты
+    socket.emit('connected', socket.id);
+
+    socket.on('createRoom', ({ playerName }) => {
+        const roomId = Math.random().toString(36).substring(2, 7);
+        rooms[roomId] = {
+            host: socket.id,
+            players: [{ id: socket.id, name: playerName, cards: [], score: 0 }],
+            deck: [],
+            tableCard: null,
+            gameStarted: false,
+            currentRound: 1
+        };
+        socket.join(roomId);
+        socket.emit('roomCreated', roomId);
+        console.log(`Комната создана: ${roomId} игроком ${playerName}`);
+    });
+
+    // Присоединение к комнате
+    socket.on('joinRoom', ({ roomId, playerName }) => {
+        const room = rooms[roomId];
+        if (!room) {
+            return socket.emit('errorMsg', 'Комната не найдена!');
+        }
+        if (room.gameStarted) {
+            return socket.emit('errorMsg', 'Игра уже началась!');
+        }
+
+        room.players.push({ id: socket.id, name: playerName, cards: [], score: 0 });
+        socket.join(roomId);
+
+        io.to(roomId).emit('updatePlayers', room.players);
+        console.log(`Игрок ${playerName} присоединился к комнате ${roomId}`);
+    });
+
+    // Старт игры
+    socket.on('startGame', (roomId) => {
+        const room = rooms[roomId];
+        if (!room || room.host !== socket.id) return;
+
+        room.gameStarted = true;
+        room.deck = generateDeck();
+
+        // Раздаем карты игрокам (например, по 4 карты на руки)
+        const cardsPerPlayer = Math.floor(room.deck.length / room.players.length);
+        room.players.forEach(player => {
+            player.cards = room.deck.splice(0, cardsPerPlayer);
+        });
+
+        // Первая карта на стол
+        room.tableCard = room.deck.pop();
+
+        io.to(roomId).emit('gameStarted', {
+            players: room.players,
+            tableCard: room.tableCard
+        });
+    });
+
+    // Ход игрока (клик по карте)
+    socket.on('playCard', ({ roomId, cardId }) => {
+        const room = rooms[roomId];
+        if (!room || !room.gameStarted) return;
+
+        const player = room.players.find(p => p.id === socket.id);
+        if (!player) return;
+
+        const cardIndex = player.cards.findIndex(c => c.id === cardId);
+        if (cardIndex === -1) return;
+
+        const cardPlayed = player.cards[cardIndex];
+        const tableCard = room.tableCard;
+
+        // Проверяем совпадение: хотя бы один корень сыгранной карты должен совпадать с корнями текущей карты на столе
+        const isMatch = cardPlayed.answers.some(ans => 
+            tableCard.answers.includes(ans)
+        );
+
+        if (isMatch) {
+            // Успешный ход: карта уходит на стол, игроку минус карта
+            player.cards.splice(cardIndex, 1);
+            room.tableCard = cardPlayed;
+
+            // Проверка на победу (если у игрока не осталось карт)
+            if (player.cards.length === 0) {
+                io.to(roomId).emit('gameOver', { winner: player.name });
+                room.gameStarted = false;
+                return;
+            }
+
+            io.to(roomId).emit('updateGame', {
+                players: room.players,
+                tableCard: room.tableCard,
+                lastMoveMessage: `${player.name} успешно сыграл карточку!`
+            });
+        } else {
+            // Штраф за неверный ход (добавляем штрафную карту из колоды, если она есть)
+            if (room.deck.length > 0) {
+                const penaltyCard = room.deck.pop();
+                player.cards.push(penaltyCard);
+            }
+            socket.emit('penalty', 'Неверный ответ! Штрафная карта.');
+            io.to(roomId).emit('updateGame', {
+                players: room.players,
+                tableCard: room.tableCard,
+                lastMoveMessage: `${player.name} ошиблись — ШТРАФ!`
+            });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log(`Игрок отключился: ${socket.id}`);
+        // Очистка комнат при выходе хоста или игроков
+        for (const roomId in rooms) {
+            rooms[roomId].players = rooms[roomId].players.filter(p => p.id !== socket.id);
+            if (rooms[roomId].players.length === 0) {
+                delete rooms[roomId];
+            } else {
+                io.to(roomId).emit('updatePlayers', rooms[roomId].players);
+            }
+        }
+    });
+});
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
+server.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
 });

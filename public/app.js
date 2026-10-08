@@ -52,11 +52,10 @@ function closeModal() {
 
 function createRoom() {
   const name = document.getElementById('playerName').value.trim();
-  const maxPlayers = document.getElementById('maxPlayers').value;
   if (!name) return showModal('Атыңызды енгізіңіз / Введите имя');
 
   isHost = true;
-  socket.emit('createRoom', { maxPlayers, playerName: name });
+  socket.emit('createRoom', { playerName: name });
 }
 
 function joinRoom() {
@@ -68,18 +67,17 @@ function joinRoom() {
   socket.emit('joinRoom', { roomId, playerName: name });
 }
 
-socket.on('roomCreated', ({ roomId, players }) => {
+socket.on('roomCreated', (roomId) => {
   currentRoomId = roomId;
-  showWaitingRoom(roomId, players);
+  showWaitingRoom(roomId, [{ id: socket.id, name: document.getElementById('playerName').value.trim() }]);
 });
 
-socket.on('joinedRoom', ({ roomId, players }) => {
-  currentRoomId = roomId;
-  showWaitingRoom(roomId, players);
-});
-
-socket.on('playerJoined', ({ players }) => {
+socket.on('updatePlayers', (players) => {
   updatePlayerList(players);
+});
+
+socket.on('errorMsg', (msg) => {
+  showModal(msg);
 });
 
 function showWaitingRoom(roomId, players) {
@@ -100,50 +98,87 @@ function updatePlayerList(players) {
 }
 
 function hostStartGame() {
-  if (currentRoomId) {
-    socket.emit('startGameHost', { roomId: currentRoomId });
+  if (currentRoomId && isHost) {
+    socket.emit('startGame', currentRoomId);
   }
 }
 
-// Получение обновленного состояния игры
-socket.on('gameStateUpdate', ({ centerCard, myHand, playersStatus }) => {
+// Начало игры
+socket.on('gameStarted', ({ players, tableCard }) => {
+  startGameInterface(players, tableCard);
+});
+
+// Обновление состояния игры после ходов
+socket.on('updateGame', ({ players, tableCard, lastMoveMessage }) => {
+  startGameInterface(players, tableCard);
+  if (lastMoveMessage) {
+    console.log(lastMoveMessage);
+  }
+});
+
+// Обработка штрафов
+socket.on('penalty', (msg) => {
+  showModal(msg);
+});
+
+function startGameInterface(players, tableCard) {
   document.getElementById('lobby').classList.add('hidden');
   document.getElementById('waitingRoom').classList.add('hidden');
   document.getElementById('gameArea').classList.remove('hidden');
 
-  // Отображаем уравнение в центре
-  document.getElementById('centerEqText').textContent = centerCard.eq;
+  // Отображаем центральную карточку с уравнением и её углами
+  const centerCardEl = document.getElementById('centerEqText').parentElement;
+  if (centerCardEl) {
+    centerCardEl.innerHTML = `
+      <div class="card center-card">
+          <div class="corner-top-left">${tableCard.answers[0] !== undefined ? tableCard.answers[0] : ''}</div>
+          <div class="corner-top-right">${tableCard.answers[1] !== undefined ? tableCard.answers[1] : tableCard.answers[0]}</div>
+          <div class="equation-text">${tableCard.equation}</div>
+          <div class="corner-bottom-left">${tableCard.answers[1] !== undefined ? tableCard.answers[1] : ''}</div>
+          <div class="corner-bottom-right">${tableCard.answers[0] !== undefined ? tableCard.answers[0] : ''}</div>
+      </div>
+    `;
+  }
 
-  // Показываем статус остальных игроков (сколько карт осталось)
+  // Статус остальных игроков (сколько карт на руках)
   const statusContainer = document.getElementById('playersStatusContainer');
-  statusContainer.innerHTML = playersStatus.map(p => `
-    <span class="player-badge"><b>${p.name}</b>: ${p.cardsLeft} карт(а)</span>
+  statusContainer.innerHTML = players.map(p => `
+    <span class="player-badge"><b>${p.name}</b>: ${p.cards.length} карт(а)</span>
   `).join(' | ');
 
-  // Отрисовка карт на руках у игрока
+  // Находим себя в списке игроков
+  const me = players.find(p => p.id === socket.id);
   const handEl = document.getElementById('myHand');
   handEl.innerHTML = '';
 
-  myHand.forEach(card => {
-    const cardDiv = document.createElement('div');
-    cardDiv.className = 'tabata-card';
-    cardDiv.innerHTML = `<div class="equation-oval">${card.eq}</div>`;
+  if (me && me.cards) {
+    me.cards.forEach(card => {
+      const cardDiv = document.createElement('div');
+      cardDiv.className = 'tabata-card card';
+      
+      // Отрисовываем карточку с цифрами на углах так же, как на твоем фото
+      cardDiv.innerHTML = `
+          <div class="corner-top-left">${card.answers[0] !== undefined ? card.answers[0] : ''}</div>
+          <div class="corner-top-right">${card.answers[1] !== undefined ? card.answers[1] : card.answers[0]}</div>
+          <div class="equation-text">${card.equation}</div>
+          <div class="corner-bottom-left">${card.answers[1] !== undefined ? card.answers[1] : ''}</div>
+          <div class="corner-bottom-right">${card.answers[0] !== undefined ? card.answers[0] : ''}</div>
+      `;
 
-    const handleCardClick = (e) => {
-      e.preventDefault();
-      socket.emit('submitCard', { roomId: currentRoomId, cardId: card.id });
-    };
+      const handleCardClick = (e) => {
+        e.preventDefault();
+        socket.emit('playCard', { roomId: currentRoomId, cardId: card.id });
+      };
 
-    cardDiv.addEventListener('click', handleCardClick);
-    cardDiv.addEventListener('touchend', handleCardClick);
+      cardDiv.addEventListener('click', handleCardClick);
+      cardDiv.addEventListener('touchend', handleCardClick);
 
-    handEl.appendChild(cardDiv);
-  });
-});
+      handEl.appendChild(cardDiv);
+    });
+  }
+}
 
 socket.on('gameOver', ({ winner }) => {
   showModal(`🏆 Ойын аяқталды!\nЖеңімпаз: ${winner}!`);
   setTimeout(() => location.reload(), 5000);
 });
-
-socket.on('notification', (msg) => showModal(msg));
