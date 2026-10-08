@@ -9,7 +9,7 @@ const translations = {
     joinTitle: "Бөлмеге қосылу",
     btnCreate: "Бөлме ашу",
     btnJoin: "Қосылу",
-    waitingTitle: "Ойыншылар күтілуде...",
+    waitingTitle: "Ойыншылар күтілуде (2, 3, 4 немесе 6 ойыншы)...",
     roomCodeLabel: "Бөлме коды:",
     centerTitle: "Ортадағы карточка (теңдеу):",
     myHandTitle: "Сіздің қолдағы карталарыңыз:",
@@ -20,7 +20,7 @@ const translations = {
     joinTitle: "Присоединиться",
     btnCreate: "Создать",
     btnJoin: "Войти",
-    waitingTitle: "Ожидание игроков...",
+    waitingTitle: "Ожидание игроков (2, 3, 4 или 6 игроков)...",
     roomCodeLabel: "Код комнаты:",
     centerTitle: "Карточка в центре (уравнение):",
     myHandTitle: "Ваши карты на руках:",
@@ -128,16 +128,16 @@ function startGameInterface(players, tableCard) {
   document.getElementById('waitingRoom').classList.add('hidden');
   document.getElementById('gameArea').classList.remove('hidden');
 
-  // Исправленный вывод центральной карточки (с учетом структуры в index.html)
+  // Отрисовка центральной карточки
   const centerCardEl = document.getElementById('centerCard');
   if (centerCardEl && tableCard) {
     centerCardEl.className = 'tabata-card card';
     centerCardEl.innerHTML = `
-      <div class="corner-top-left">${tableCard.answers[0] !== undefined ? tableCard.answers[0] : ''}</div>
-      <div class="corner-top-right">${tableCard.answers[1] !== undefined ? tableCard.answers[1] : tableCard.answers[0]}</div>
+      <div class="corner-top-left">${tableCard.corners[0]}</div>
+      <div class="corner-top-right">${tableCard.corners[1]}</div>
       <div class="equation-text">${tableCard.equation}</div>
-      <div class="corner-bottom-left">${tableCard.answers[1] !== undefined ? tableCard.answers[1] : ''}</div>
-      <div class="corner-bottom-right">${tableCard.answers[0] !== undefined ? tableCard.answers[0] : ''}</div>
+      <div class="corner-bottom-left">${tableCard.corners[2]}</div>
+      <div class="corner-bottom-right">${tableCard.corners[3]}</div>
     `;
   }
 
@@ -147,7 +147,7 @@ function startGameInterface(players, tableCard) {
     <span class="player-badge"><b>${p.name}</b>: ${p.cards.length} карт(а)</span>
   `).join(' | ');
 
-  // Рендеринг карт на руках у текущего игрока
+  // Карты на руках у игрока
   const me = players.find(p => p.id === socket.id);
   const handEl = document.getElementById('myHand');
   handEl.innerHTML = '';
@@ -158,11 +158,11 @@ function startGameInterface(players, tableCard) {
       cardDiv.className = 'tabata-card card';
       
       cardDiv.innerHTML = `
-          <div class="corner-top-left">${card.answers[0] !== undefined ? card.answers[0] : ''}</div>
-          <div class="corner-top-right">${card.answers[1] !== undefined ? card.answers[1] : card.answers[0]}</div>
+          <div class="corner-top-left">${card.corners[0]}</div>
+          <div class="corner-top-right">${card.corners[1]}</div>
           <div class="equation-text">${card.equation}</div>
-          <div class="corner-bottom-left">${card.answers[1] !== undefined ? card.answers[1] : ''}</div>
-          <div class="corner-bottom-right">${card.answers[0] !== undefined ? card.answers[0] : ''}</div>
+          <div class="corner-bottom-left">${card.corners[2]}</div>
+          <div class="corner-bottom-right">${card.corners[3]}</div>
       `;
 
       const handleCardClick = (e) => {
