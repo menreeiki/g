@@ -243,15 +243,24 @@ io.on('connection', socket => {
             room.deck.length / room.players.length
         );
 
-        for (const player of room.players) {
-            player.cards = [];
-            player.score = 0;
-            player.penalties = 0;
+for (const player of room.players) {
+    player.cards = [];
+    player.score = 0;
+    player.penalties = 0;
 
-            for (let i = 0; i < cardsPerPlayer; i++) {
-                player.cards.push(room.deck.pop());
-            }
-        }
+    for (let i = 0; i < cardsPerPlayer; i++) {
+        player.cards.push(room.deck.pop());
+    }
+
+    // Случайно перемешиваем карты в руке игрока
+    for (let i = player.cards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+
+        [player.cards[i], player.cards[j]] =
+            [player.cards[j], player.cards[i]];
+    }
+}
+
 
         io.to(roomId).emit('gameStarted', {
             players: room.players,
