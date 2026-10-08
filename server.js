@@ -42,21 +42,20 @@ function generateDeck() {
     let deck = cardTemplates.map((template, index) => ({
         id: index + 1,
         equation: template.equation,
-        answers: template.answers, // массив правильных корней на углах
+        answers: template.answers,
         displayNumber: template.displayNumber
     }));
-    // Перемешиваем колоду
     return deck.sort(() => Math.random() - 0.5);
 }
 
 io.on('connection', (socket) => {
     console.log(`Игрок подключился: ${socket.id}`);
 
-    // Создание комнаты
     socket.emit('connected', socket.id);
 
+    // Создание комнаты
     socket.on('createRoom', ({ playerName }) => {
-        const roomId = Math.random().toString(36).substring(2, 7);
+        const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
         rooms[roomId] = {
             host: socket.id,
             players: [{ id: socket.id, name: playerName, cards: [], score: 0 }],
@@ -66,13 +65,17 @@ io.on('connection', (socket) => {
             currentRound: 1
         };
         socket.join(roomId);
-        socket.emit('roomCreated', roomId);
+        
+        // Исправление: отправляем и roomId, и список игроков объектом, как ждет клиент
+        socket.emit('roomCreated', { roomId, players: rooms[roomId].players });
         console.log(`Комната создана: ${roomId} игроком ${playerName}`);
     });
 
     // Присоединение к комнате
     socket.on('joinRoom', ({ roomId, playerName }) => {
-        const room = rooms[roomId];
+        const cleanRoomId = roomId.trim().toUpperCase();
+        const room = rooms[cleanRoomId];
+        
         if (!room) {
             return socket.emit('errorMsg', 'Комната не найдена!');
         }
@@ -81,10 +84,13 @@ io.on('connection', (socket) => {
         }
 
         room.players.push({ id: socket.id, name: playerName, cards: [], score: 0 });
-        socket.join(roomId);
+        socket.join(cleanRoomId);
 
-        io.to(roomId).emit('updatePlayers', room.players);
-        console.log(`Игрок ${playerName} присоединился к комнате ${roomId}`);
+        // Отправляем успешное подключение присоединившемуся игроку
+        socket.emit('joinedRoom', { roomId: cleanRoomId, players: room.players });
+        // Обновляем список для всех в комнате
+        io.to(cleanRoomId).emit('updatePlayers', room.players);
+        console.log(`Игрок ${playerName} присоединился к комнате ${cleanRoomId}`);
     });
 
     // Старт игры
@@ -95,13 +101,11 @@ io.on('connection', (socket) => {
         room.gameStarted = true;
         room.deck = generateDeck();
 
-        // Раздаем карты игрокам (например, по 4 карты на руки)
         const cardsPerPlayer = Math.floor(room.deck.length / room.players.length);
         room.players.forEach(player => {
             player.cards = room.deck.splice(0, cardsPerPlayer);
         });
 
-        // Первая карта на стол
         room.tableCard = room.deck.pop();
 
         io.to(roomId).emit('gameStarted', {
@@ -124,17 +128,14 @@ io.on('connection', (socket) => {
         const cardPlayed = player.cards[cardIndex];
         const tableCard = room.tableCard;
 
-        // Проверяем совпадение: хотя бы один корень сыгранной карты должен совпадать с корнями текущей карты на столе
         const isMatch = cardPlayed.answers.some(ans => 
             tableCard.answers.includes(ans)
         );
 
         if (isMatch) {
-            // Успешный ход: карта уходит на стол, игроку минус карта
             player.cards.splice(cardIndex, 1);
             room.tableCard = cardPlayed;
 
-            // Проверка на победу (если у игрока не осталось карт)
             if (player.cards.length === 0) {
                 io.to(roomId).emit('gameOver', { winner: player.name });
                 room.gameStarted = false;
@@ -147,7 +148,6 @@ io.on('connection', (socket) => {
                 lastMoveMessage: `${player.name} успешно сыграл карточку!`
             });
         } else {
-            // Штраф за неверный ход (добавляем штрафную карту из колоды, если она есть)
             if (room.deck.length > 0) {
                 const penaltyCard = room.deck.pop();
                 player.cards.push(penaltyCard);
@@ -163,7 +163,6 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`Игрок отключился: ${socket.id}`);
-        // Очистка комнат при выходе хоста или игроков
         for (const roomId in rooms) {
             rooms[roomId].players = rooms[roomId].players.filter(p => p.id !== socket.id);
             if (rooms[roomId].players.length === 0) {
