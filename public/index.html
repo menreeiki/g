@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ТАБАТА — Квадрат теңдеулер ойыны</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div class="lang-switch">
+    <button onclick="setLanguage('kk')" id="btn-kk" class="active">ҚАЗ</button>
+    <button onclick="setLanguage('ru')" id="btn-ru">РУС</button>
+  </div>
+
+  <div id="lobby" class="card-container">
+    <h1 id="title">ТАБАТА ОЙЫНЫ</h1>
+    <p id="subtitle">Квадрат теңдеулерді жылдам шешіп, жеңіске жет!</p>
+
+    <input type="text" id="playerName" placeholder="Атыңызды енгізіңіз / Ваше имя" />
+
+    <div class="lobby-actions">
+      <div class="box">
+        <h3 data-key="createTitle">Жаңа бөлме құру</h3>
+        <select id="maxPlayers">
+          <option value="2">2 Ойыншы / Игрока</option>
+          <option value="3">3 Ойыншы / Игрока</option>
+          <option value="4" selected>4 Ойыншы / Игрока</option>
+          <option value="6">6 Ойыншы / Игроков</option>
+        </select>
+        <button onclick="createRoom()" data-key="btnCreate">Бөлме ашу</button>
+      </div>
+
+      <div class="box">
+        <h3 data-key="joinTitle">Бөлмеге қосылу</h3>
+        <input type="text" id="roomCodeInput" placeholder="Код (мысалы: AB12C)" />
+        <button onclick="joinRoom()" data-key="btnJoin">Қосылу</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="waitingRoom" class="card-container hidden">
+    <h2 data-key="waitingTitle">Ойыншылар күтілуде...</h2>
+    <p><span data-key="roomCodeLabel">Бөлме коды:</span> <b id="displayRoomCode"></b></p>
+    <ul id="playerList"></ul>
+  </div>
+
+  <div id="gameArea" class="hidden">
+    <div class="status-bar" id="gameStatus"></div>
+
+    <div class="table-center">
+      <h3 data-key="centerTitle">Ортадағы карта:</h3>
+      <div id="centerCard" class="tabata-card pink-card"></div>
+    </div>
+
+    <div class="players-info" id="otherPlayers"></div>
+
+    <div class="my-hand-section">
+      <h3 data-key="myHandTitle">Сіздің карталарыңыз:</h3>
+      <div id="myHand" class="hand-container"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
