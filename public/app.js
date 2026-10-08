@@ -12,7 +12,7 @@ const translations = {
     waitingTitle: "Ойыншылар күтілуде...",
     roomCodeLabel: "Бөлме коды:",
     centerTitle: "Ортадағы карточка (теңдеу):",
-    myHandTitle: "Нұсқалар (10 нұсқа):",
+    myHandTitle: "Нұсқалар:",
     btnStart: "Ойынды бастау"
   },
   ru: {
@@ -23,7 +23,7 @@ const translations = {
     waitingTitle: "Ожидание игроков...",
     roomCodeLabel: "Код комнаты:",
     centerTitle: "Карточка в центре (уравнение):",
-    myHandTitle: "Варианты (10 вариантов):",
+    myHandTitle: "Варианты:",
     btnStart: "Начать игру"
   }
 };
@@ -41,10 +41,19 @@ function setLanguage(lang) {
   });
 }
 
+function showModal(text) {
+  document.getElementById('modalMessage').textContent = text;
+  document.getElementById('customModal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('customModal').classList.add('hidden');
+}
+
 function createRoom() {
   const name = document.getElementById('playerName').value.trim();
   const maxPlayers = document.getElementById('maxPlayers').value;
-  if (!name) return alert('Атыңызды енгізіңіз / Введите имя');
+  if (!name) return showModal('Атыңызды енгізіңіз / Введите имя');
 
   isHost = true;
   socket.emit('createRoom', { maxPlayers, playerName: name });
@@ -53,7 +62,7 @@ function createRoom() {
 function joinRoom() {
   const name = document.getElementById('playerName').value.trim();
   const roomId = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-  if (!name || !roomId) return alert('Деректерді толық толтырыңыз / Заполните данные');
+  if (!name || !roomId) return showModal('Деректерді толық толтырыңыз / Заполните данные');
 
   isHost = false;
   socket.emit('joinRoom', { roomId, playerName: name });
@@ -101,14 +110,12 @@ socket.on('nextRoundData', ({ round, maxRounds, centerCard, options }) => {
   document.getElementById('waitingRoom').classList.add('hidden');
   document.getElementById('gameArea').classList.remove('hidden');
 
-  document.getElementById('gameStatus').style.background = '#800040';
-  document.getElementById('gameStatus').textContent = `Раунд ${round} / ${maxRounds}`;
+  const statusEl = document.getElementById('gameStatus');
+  statusEl.style.background = '#e91e63';
+  statusEl.textContent = `Раунд ${round} / ${maxRounds}`;
   
-  const centerEl = document.getElementById('centerCard');
-  centerEl.innerHTML = `
-    <div class="top-answer">${centerCard.topAnswer}</div>
-    <div class="equation-oval">${centerCard.eq}</div>
-  `;
+  // Устанавливаем уравнение в центр БЕЗ цифры
+  document.getElementById('centerEqText').textContent = centerCard.eq;
 
   const handEl = document.getElementById('myHand');
   handEl.innerHTML = '';
@@ -116,8 +123,8 @@ socket.on('nextRoundData', ({ round, maxRounds, centerCard, options }) => {
   options.forEach(card => {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'tabata-card';
+    // Карточки выбора тоже содержат только уравнение, без цифр
     cardDiv.innerHTML = `
-      <div class="top-answer">${card.topAnswer}</div>
       <div class="equation-oval">${card.eq}</div>
     `;
 
@@ -135,7 +142,7 @@ socket.on('nextRoundData', ({ round, maxRounds, centerCard, options }) => {
 
 socket.on('roundWon', ({ message }) => {
   const statusEl = document.getElementById('gameStatus');
-  statusEl.style.background = '#d9534f'; // Красный цвет
+  statusEl.style.background = '#d9534f'; // Красный статус опоздания
   statusEl.textContent = `Опоздал! ${message}`;
 });
 
@@ -144,8 +151,8 @@ socket.on('gameOver', ({ players }) => {
   players.forEach((p, index) => {
     resultText += `${index + 1}. ${p.name} — ${p.score} ұпай\n`;
   });
-  alert(resultText);
-  location.reload();
+  showModal(resultText);
+  setTimeout(() => location.reload(), 4000);
 });
 
-socket.on('errorMsg', (msg) => alert(msg));
+socket.on('notification', (msg) => showModal(msg));
