@@ -1,6 +1,7 @@
 const socket = io();
 let currentRoomId = null;
 let currentLang = 'kk';
+let isHost = false;
 
 const translations = {
   kk: {
@@ -10,8 +11,9 @@ const translations = {
     btnJoin: "Қосылу",
     waitingTitle: "Ойыншылар күтілуде...",
     roomCodeLabel: "Бөлме коды:",
-    centerTitle: "Ортадағы карта:",
-    myHandTitle: "Сіздің карталарыңыз (жүру үшін басыңыз):"
+    centerTitle: "Ортадағы карточка (теңдеу):",
+    myHandTitle: "Нұсқалар (10 нұсқа):",
+    btnStart: "Ойынды бастау"
   },
   ru: {
     createTitle: "Создать комнату",
@@ -20,8 +22,9 @@ const translations = {
     btnJoin: "Войти",
     waitingTitle: "Ожидание игроков...",
     roomCodeLabel: "Код комнаты:",
-    centerTitle: "Карта в центре:",
-    myHandTitle: "Ваши карты (нажмите для хода):"
+    centerTitle: "Карточка в центре (уравнение):",
+    myHandTitle: "Варианты (10 вариантов):",
+    btnStart: "Начать игру"
   }
 };
 
@@ -43,6 +46,7 @@ function createRoom() {
   const maxPlayers = document.getElementById('maxPlayers').value;
   if (!name) return alert('Атыңызды енгізіңіз / Введите имя');
 
+  isHost = true;
   socket.emit('createRoom', { maxPlayers, playerName: name });
 }
 
@@ -51,10 +55,16 @@ function joinRoom() {
   const roomId = document.getElementById('roomCodeInput').value.trim().toUpperCase();
   if (!name || !roomId) return alert('Деректерді толық толтырыңыз / Заполните данные');
 
+  isHost = false;
   socket.emit('joinRoom', { roomId, playerName: name });
 }
 
 socket.on('roomCreated', ({ roomId, players }) => {
+  currentRoomId = roomId;
+  showWaitingRoom(roomId, players);
+});
+
+socket.on('joinedRoom', ({ roomId, players }) => {
   currentRoomId = roomId;
   showWaitingRoom(roomId, players);
 });
@@ -68,6 +78,11 @@ function showWaitingRoom(roomId, players) {
   document.getElementById('waitingRoom').classList.remove('hidden');
   document.getElementById('displayRoomCode').textContent = roomId;
   updatePlayerList(players);
+
+  const startBtn = document.getElementById('startBtn');
+  if (startBtn) {
+    startBtn.style.display = isHost ? 'block' : 'none';
+  }
 }
 
 function updatePlayerList(players) {
@@ -75,50 +90,61 @@ function updatePlayerList(players) {
   list.innerHTML = players.map(p => `<li>${p.name}</li>`).join('');
 }
 
-socket.on('gameStarted', ({ hand, centerCard, players }) => {
+function hostStartGame() {
+  if (currentRoomId) {
+    socket.emit('startGameHost', { roomId: currentRoomId });
+  }
+}
+
+socket.on('nextRoundData', ({ round, maxRounds, centerCard, options }) => {
+  document.getElementById('lobby').classList.add('hidden');
   document.getElementById('waitingRoom').classList.add('hidden');
   document.getElementById('gameArea').classList.remove('hidden');
 
-  renderCenterCard(centerCard);
-  renderHand(hand);
-});
-
-socket.on('gameUpdate', ({ centerCard, players, lastAction }) => {
-  renderCenterCard(centerCard);
-  document.getElementById('gameStatus').textContent = lastAction;
-});
-
-function renderCenterCard(card) {
+  document.getElementById('gameStatus').style.background = '#800040';
+  document.getElementById('gameStatus').textContent = `Раунд ${round} / ${maxRounds}`;
+  
   const centerEl = document.getElementById('centerCard');
   centerEl.innerHTML = `
-    <div class="top-answer">${card.topAnswer}</div>
-    <div class="equation-oval">${card.eq}</div>
+    <div class="top-answer">${centerCard.topAnswer}</div>
+    <div class="equation-oval">${centerCard.eq}</div>
   `;
-}
 
-function renderHand(hand) {
   const handEl = document.getElementById('myHand');
   handEl.innerHTML = '';
-  hand.forEach(card => {
+
+  options.forEach(card => {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'tabata-card';
     cardDiv.innerHTML = `
       <div class="top-answer">${card.topAnswer}</div>
       <div class="equation-oval">${card.eq}</div>
     `;
-    cardDiv.onclick = () => {
-      socket.emit('playCard', { roomId: currentRoomId, cardId: card.id });
+
+    const handleCardClick = (e) => {
+      e.preventDefault();
+      socket.emit('submitAnswer', { roomId: currentRoomId, cardId: card.id });
     };
+
+    cardDiv.addEventListener('click', handleCardClick);
+    cardDiv.addEventListener('touchend', handleCardClick);
+
     handEl.appendChild(cardDiv);
   });
-}
-
-socket.on('penalized', ({ message }) => {
-  alert(message);
 });
 
-socket.on('gameOver', ({ winner }) => {
-  alert(`Ойын аяқталды! Жеңімпаз: ${winner} 🎉`);
+socket.on('roundWon', ({ message }) => {
+  const statusEl = document.getElementById('gameStatus');
+  statusEl.style.background = '#d9534f'; // Красный цвет
+  statusEl.textContent = `Опоздал! ${message}`;
+});
+
+socket.on('gameOver', ({ players }) => {
+  let resultText = "🎉 Ойын аяқталды! Рейтинг:\n\n";
+  players.forEach((p, index) => {
+    resultText += `${index + 1}. ${p.name} — ${p.score} ұпай\n`;
+  });
+  alert(resultText);
   location.reload();
 });
 

@@ -43,21 +43,20 @@
     <h2 data-key="waitingTitle">Ойыншылар күтілуде...</h2>
     <p><span data-key="roomCodeLabel">Бөлме коды:</span> <b id="displayRoomCode"></b></p>
     <ul id="playerList"></ul>
+    <button onclick="hostStartGame()" id="startBtn" class="primary-btn" data-key="btnStart" style="margin-top: 15px; display: none;">Ойынды бастау / Начать игру</button>
   </div>
 
   <div id="gameArea" class="hidden">
-    <div class="status-bar" id="gameStatus"></div>
+    <div class="status-bar" id="gameStatus">Раунд 1 / 10</div>
 
     <div class="table-center">
-      <h3 data-key="centerTitle">Ортадағы карта:</h3>
+      <h3 data-key="centerTitle">Ортадағы карточка (теңдеу):</h3>
       <div id="centerCard" class="tabata-card pink-card"></div>
     </div>
 
-    <div class="players-info" id="otherPlayers"></div>
-
     <div class="my-hand-section">
-      <h3 data-key="myHandTitle">Сіздің карталарыңыз:</h3>
-      <div id="myHand" class="hand-container"></div>
+      <h3 data-key="myHandTitle">Нұсқалар (10 нұсқа):</h3>
+      <div id="myHand" class="hand-container grid-hand"></div>
     </div>
   </div>
 
