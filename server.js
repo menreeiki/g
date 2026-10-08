@@ -50,7 +50,6 @@ function generateDeck() {
 
 io.on('connection', (socket) => {
     console.log(`Игрок подключился: ${socket.id}`);
-
     socket.emit('connected', socket.id);
 
     // Создание комнаты
@@ -66,7 +65,7 @@ io.on('connection', (socket) => {
         };
         socket.join(roomId);
         
-        // Исправление: отправляем и roomId, и список игроков объектом, как ждет клиент
+        // Отправляем объект с roomId и players
         socket.emit('roomCreated', { roomId, players: rooms[roomId].players });
         console.log(`Комната создана: ${roomId} игроком ${playerName}`);
     });

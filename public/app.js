@@ -67,9 +67,16 @@ function joinRoom() {
   socket.emit('joinRoom', { roomId, playerName: name });
 }
 
-socket.on('roomCreated', (roomId) => {
+// Принятие создания комнаты от сервера
+socket.on('roomCreated', ({ roomId, players }) => {
   currentRoomId = roomId;
-  showWaitingRoom(roomId, [{ id: socket.id, name: document.getElementById('playerName').value.trim() }]);
+  showWaitingRoom(roomId, players);
+});
+
+// Принятие успешного входа в комнату для обычных игроков
+socket.on('joinedRoom', ({ roomId, players }) => {
+  currentRoomId = roomId;
+  showWaitingRoom(roomId, players);
 });
 
 socket.on('updatePlayers', (players) => {
@@ -156,7 +163,6 @@ function startGameInterface(players, tableCard) {
       const cardDiv = document.createElement('div');
       cardDiv.className = 'tabata-card card';
       
-      // Отрисовываем карточку с цифрами на углах так же, как на твоем фото
       cardDiv.innerHTML = `
           <div class="corner-top-left">${card.answers[0] !== undefined ? card.answers[0] : ''}</div>
           <div class="corner-top-right">${card.answers[1] !== undefined ? card.answers[1] : card.answers[0]}</div>
