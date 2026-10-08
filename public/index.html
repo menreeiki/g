@@ -13,7 +13,6 @@
     <button onclick="setLanguage('ru')" id="btn-ru">РУС</button>
   </div>
 
-  <!-- Красивое всплывающее окно вместо alert -->
   <div id="customModal" class="modal hidden">
     <div class="modal-content">
       <p id="modalMessage">Уведомление</p>
@@ -23,7 +22,7 @@
 
   <div id="lobby" class="card-container">
     <h1 id="title">ТАБАТА ОЙЫНЫ</h1>
-    <p id="subtitle">Квадрат теңдеулерді жылдам шешіп, жеңіске жет!</p>
+    <p id="subtitle">Карталардан бірінші болып құтыл!</p>
 
     <input type="text" id="playerName" placeholder="Атыңызды енгізіңіз / Ваше имя" />
 
@@ -55,18 +54,20 @@
   </div>
 
   <div id="gameArea" class="hidden">
-    <div class="status-bar" id="gameStatus">Раунд 1 / 10</div>
+    <div class="status-bar" id="gameStatus">Карталарыңызды тез тастаңыз!</div>
+
+    <!-- Список статусов других игроков (сколько карт осталось) -->
+    <div id="playersStatusContainer" class="players-status-bar"></div>
 
     <div class="table-center">
-      <h3 data-key="centerTitle">Ортадағы карточка (теңдеу):</h3>
-      <!-- Без цифры сверху -->
+      <h3 data-key="centerTitle">Ортадағы карточка:</h3>
       <div id="centerCard" class="tabata-card pink-card">
         <div class="equation-oval" id="centerEqText"></div>
       </div>
     </div>
 
     <div class="my-hand-section">
-      <h3 data-key="myHandTitle">Нұсқалар:</h3>
+      <h3 data-key="myHandTitle">Сіздің карталарыңыз:</h3>
       <div id="myHand" class="grid-hand"></div>
     </div>
   </div>

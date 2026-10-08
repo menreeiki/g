@@ -12,7 +12,7 @@ const translations = {
     waitingTitle: "Ойыншылар күтілуде...",
     roomCodeLabel: "Бөлме коды:",
     centerTitle: "Ортадағы карточка (теңдеу):",
-    myHandTitle: "Нұсқалар:",
+    myHandTitle: "Сіздің қолдағы карталарыңыз:",
     btnStart: "Ойынды бастау"
   },
   ru: {
@@ -23,7 +23,7 @@ const translations = {
     waitingTitle: "Ожидание игроков...",
     roomCodeLabel: "Код комнаты:",
     centerTitle: "Карточка в центре (уравнение):",
-    myHandTitle: "Варианты:",
+    myHandTitle: "Ваши карты на руках:",
     btnStart: "Начать игру"
   }
 };
@@ -105,32 +105,33 @@ function hostStartGame() {
   }
 }
 
-socket.on('nextRoundData', ({ round, maxRounds, centerCard, options }) => {
+// Получение обновленного состояния игры
+socket.on('gameStateUpdate', ({ centerCard, myHand, playersStatus }) => {
   document.getElementById('lobby').classList.add('hidden');
   document.getElementById('waitingRoom').classList.add('hidden');
   document.getElementById('gameArea').classList.remove('hidden');
 
-  const statusEl = document.getElementById('gameStatus');
-  statusEl.style.background = '#e91e63';
-  statusEl.textContent = `Раунд ${round} / ${maxRounds}`;
-  
-  // Устанавливаем уравнение в центр БЕЗ цифры
+  // Отображаем уравнение в центре
   document.getElementById('centerEqText').textContent = centerCard.eq;
 
+  // Показываем статус остальных игроков (сколько карт осталось)
+  const statusContainer = document.getElementById('playersStatusContainer');
+  statusContainer.innerHTML = playersStatus.map(p => `
+    <span class="player-badge"><b>${p.name}</b>: ${p.cardsLeft} карт(а)</span>
+  `).join(' | ');
+
+  // Отрисовка карт на руках у игрока
   const handEl = document.getElementById('myHand');
   handEl.innerHTML = '';
 
-  options.forEach(card => {
+  myHand.forEach(card => {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'tabata-card';
-    // Карточки выбора тоже содержат только уравнение, без цифр
-    cardDiv.innerHTML = `
-      <div class="equation-oval">${card.eq}</div>
-    `;
+    cardDiv.innerHTML = `<div class="equation-oval">${card.eq}</div>`;
 
     const handleCardClick = (e) => {
       e.preventDefault();
-      socket.emit('submitAnswer', { roomId: currentRoomId, cardId: card.id });
+      socket.emit('submitCard', { roomId: currentRoomId, cardId: card.id });
     };
 
     cardDiv.addEventListener('click', handleCardClick);
@@ -140,19 +141,9 @@ socket.on('nextRoundData', ({ round, maxRounds, centerCard, options }) => {
   });
 });
 
-socket.on('roundWon', ({ message }) => {
-  const statusEl = document.getElementById('gameStatus');
-  statusEl.style.background = '#d9534f'; // Красный статус опоздания
-  statusEl.textContent = `Опоздал! ${message}`;
-});
-
-socket.on('gameOver', ({ players }) => {
-  let resultText = "🎉 Ойын аяқталды! Рейтинг:\n\n";
-  players.forEach((p, index) => {
-    resultText += `${index + 1}. ${p.name} — ${p.score} ұпай\n`;
-  });
-  showModal(resultText);
-  setTimeout(() => location.reload(), 4000);
+socket.on('gameOver', ({ winner }) => {
+  showModal(`🏆 Ойын аяқталды!\nЖеңімпаз: ${winner}!`);
+  setTimeout(() => location.reload(), 5000);
 });
 
 socket.on('notification', (msg) => showModal(msg));
