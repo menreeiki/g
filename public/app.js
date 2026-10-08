@@ -67,13 +67,11 @@ function joinRoom() {
   socket.emit('joinRoom', { roomId, playerName: name });
 }
 
-// Принятие создания комнаты от сервера
 socket.on('roomCreated', ({ roomId, players }) => {
   currentRoomId = roomId;
   showWaitingRoom(roomId, players);
 });
 
-// Принятие успешного входа в комнату для обычных игроков
 socket.on('joinedRoom', ({ roomId, players }) => {
   currentRoomId = roomId;
   showWaitingRoom(roomId, players);
@@ -110,12 +108,10 @@ function hostStartGame() {
   }
 }
 
-// Начало игры
 socket.on('gameStarted', ({ players, tableCard }) => {
   startGameInterface(players, tableCard);
 });
 
-// Обновление состояния игры после ходов
 socket.on('updateGame', ({ players, tableCard, lastMoveMessage }) => {
   startGameInterface(players, tableCard);
   if (lastMoveMessage) {
@@ -123,7 +119,6 @@ socket.on('updateGame', ({ players, tableCard, lastMoveMessage }) => {
   }
 });
 
-// Обработка штрафов
 socket.on('penalty', (msg) => {
   showModal(msg);
 });
@@ -133,27 +128,26 @@ function startGameInterface(players, tableCard) {
   document.getElementById('waitingRoom').classList.add('hidden');
   document.getElementById('gameArea').classList.remove('hidden');
 
-  // Отображаем центральную карточку с уравнением и её углами
-  const centerCardEl = document.getElementById('centerEqText').parentElement;
-  if (centerCardEl) {
+  // Исправленный вывод центральной карточки (с учетом структуры в index.html)
+  const centerCardEl = document.getElementById('centerCard');
+  if (centerCardEl && tableCard) {
+    centerCardEl.className = 'tabata-card card';
     centerCardEl.innerHTML = `
-      <div class="card center-card">
-          <div class="corner-top-left">${tableCard.answers[0] !== undefined ? tableCard.answers[0] : ''}</div>
-          <div class="corner-top-right">${tableCard.answers[1] !== undefined ? tableCard.answers[1] : tableCard.answers[0]}</div>
-          <div class="equation-text">${tableCard.equation}</div>
-          <div class="corner-bottom-left">${tableCard.answers[1] !== undefined ? tableCard.answers[1] : ''}</div>
-          <div class="corner-bottom-right">${tableCard.answers[0] !== undefined ? tableCard.answers[0] : ''}</div>
-      </div>
+      <div class="corner-top-left">${tableCard.answers[0] !== undefined ? tableCard.answers[0] : ''}</div>
+      <div class="corner-top-right">${tableCard.answers[1] !== undefined ? tableCard.answers[1] : tableCard.answers[0]}</div>
+      <div class="equation-text">${tableCard.equation}</div>
+      <div class="corner-bottom-left">${tableCard.answers[1] !== undefined ? tableCard.answers[1] : ''}</div>
+      <div class="corner-bottom-right">${tableCard.answers[0] !== undefined ? tableCard.answers[0] : ''}</div>
     `;
   }
 
-  // Статус остальных игроков (сколько карт на руках)
+  // Статус игроков
   const statusContainer = document.getElementById('playersStatusContainer');
   statusContainer.innerHTML = players.map(p => `
     <span class="player-badge"><b>${p.name}</b>: ${p.cards.length} карт(а)</span>
   `).join(' | ');
 
-  // Находим себя в списке игроков
+  // Рендеринг карт на руках у текущего игрока
   const me = players.find(p => p.id === socket.id);
   const handEl = document.getElementById('myHand');
   handEl.innerHTML = '';
