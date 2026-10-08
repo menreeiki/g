@@ -10,20 +10,20 @@ app.use(express.static('public'));
 
 const rooms = {};
 
-// 24 карточки с уравнением в центре и 2 ответами на углах
+// 24 карточки с уравнением и красивыми округленными ответами на углах
 const cardTemplates = [
     { id: 1, equation: "x² - 6x + 5 = 0", answers: [1, 5] },
     { id: 2, equation: "5x² + 14x + 8 = 0", answers: [-0.8, -2] },
-    { id: 3, equation: "-7x² + 3x + 4 = 0", answers: [1, -4/7] },
+    { id: 3, equation: "-7x² + 3x + 4 = 0", answers: [1, -0.57] },
     { id: 4, equation: "x² - 4x - 12 = 0", answers: [6, -2] },
-    { id: 5, equation: "6x² + 5x - 4 = 0", answers: [0.5, -4/3] },
+    { id: 5, equation: "6x² + 5x - 4 = 0", answers: [0.5, -1.33] },
     { id: 6, equation: "x² + 5x - 24 = 0", answers: [3, -8] },
     { id: 7, equation: "-10x² - 7x + 3 = 0", answers: [-1, 0.3] },
     { id: 8, equation: "x² - 8x + 16 = 0", answers: [4, 4] },
     { id: 9, equation: "x² - 12x + 27 = 0", answers: [9, 3] },
     { id: 10, equation: "2x² - 5x + 2 = 0", answers: [2, 0.5] },
     { id: 11, equation: "x² + 7x + 10 = 0", answers: [-2, -5] },
-    { id: 12, equation: "3x² - 10x + 3 = 0", answers: [3, 1/3] },
+    { id: 12, equation: "3x² - 10x + 3 = 0", answers: [3, 0.33] },
     { id: 13, equation: "x² - 9 = 0", answers: [3, -3] },
     { id: 14, equation: "4x² - 9 = 0", answers: [1.5, -1.5] },
     { id: 15, equation: "x² + 6x + 9 = 0", answers: [-3, -3] },
@@ -33,7 +33,7 @@ const cardTemplates = [
     { id: 19, equation: "5x² - 6x + 1 = 0", answers: [1, 0.2] },
     { id: 20, equation: "x² - 7x + 12 = 0", answers: [4, 3] },
     { id: 21, equation: "x² + 4x - 5 = 0", answers: [1, -5] },
-    { id: 22, equation: "3x² + 7x + 2 = 0", answers: [-1/3, -2] },
+    { id: 22, equation: "3x² + 7x + 2 = 0", answers: [-0.33, -2] },
     { id: 23, equation: "x² - 2x - 8 = 0", answers: [4, -2] },
     { id: 24, equation: "2x² + 5x + 2 = 0", answers: [-0.5, -2] }
 ];
@@ -84,7 +84,7 @@ io.on('connection', (socket) => {
 
         const count = room.players.length;
         if (![2, 3, 4, 6].includes(count)) {
-            return socket.emit('errorMsg', 'Нужно 2, 3, 4 или 6 игроков!');
+            return socket.emit('errorMsg', 'Для игры нужно 2, 3, 4 или 6 игроков!');
         }
 
         room.gameStarted = true;
@@ -117,7 +117,7 @@ io.on('connection', (socket) => {
         const cardPlayed = player.cards[cardIndex];
         const tableCard = room.tableCard;
 
-        // Проверка совпадения: один из ответов карты игрока должен совпадать с ответами карты на столе
+        // Проверка совпадения ответов
         const isMatch = cardPlayed.answers.some(ans => tableCard.answers.includes(ans));
 
         if (isMatch) {
@@ -126,7 +126,6 @@ io.on('connection', (socket) => {
             room.tableCard = cardPlayed;
 
             if (player.cards.length === 0) {
-                // Сортируем рейтинг по оставшимся картам и количеству победных ходов
                 const rating = [...room.players].sort((a, b) => a.cards.length - b.cards.length);
                 io.to(roomId).emit('gameOver', { winner: player.name, rating });
                 room.gameStarted = false;
@@ -136,7 +135,7 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('updateGame', {
                 players: room.players,
                 tableCard: room.tableCard,
-                lastMoveMessage: `${player.name} карту сбросил!`
+                lastMoveMessage: `${player.name} карточку тастады!`
             });
         } else {
             if (room.deck.length > 0) {

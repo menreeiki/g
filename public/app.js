@@ -125,7 +125,7 @@ function startGameInterface(players, tableCard) {
   document.getElementById('waitingRoom').classList.add('hidden');
   document.getElementById('gameArea').classList.remove('hidden');
 
-  // Центральная карточка (с 2 ответами по углам)
+  // Центральная карточка (с уравнением в центре и ответами на углах)
   const centerCardEl = document.getElementById('centerCard');
   if (centerCardEl && tableCard) {
     centerCardEl.className = 'tabata-card card';
@@ -138,7 +138,7 @@ function startGameInterface(players, tableCard) {
     `;
   }
 
-  // Статус карточек игроков
+  // Статус карт игроков
   const statusContainer = document.getElementById('playersStatusContainer');
   statusContainer.innerHTML = players.map(p => `
     <span class="player-badge"><b>${p.name}</b>: ${p.cards.length} карт(а)</span>
@@ -162,6 +162,7 @@ function startGameInterface(players, tableCard) {
           <div class="corner-bottom-right">${card.answers[0]}</div>
       `;
 
+      // Обработка клика / тапа для хода
       const playThisCard = (e) => {
         e.preventDefault();
         socket.emit('playCard', { roomId: currentRoomId, cardId: card.id });
