@@ -73,5 +73,52 @@
   </div>
 
   <script src="app.js"></script>
+
+      <!-- ЭКРАН ШТРАФА -->
+    <div id="penaltyScreen" class="penalty-screen hidden">
+
+        <div class="penalty-box">
+
+            <div class="penalty-icon">
+                ⚠️
+            </div>
+
+            <h1 id="penaltyTitle">
+                ШТРАФ!
+            </h1>
+
+            <p id="penaltyDescription">
+                Неверная карта!
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- ЭКРАН РЕЙТИНГА -->
+    <div id="ratingScreen" class="rating-screen hidden">
+
+        <div class="rating-box">
+
+            <h1>
+                🏆 РЕЙТИНГ
+            </h1>
+
+            <h2 id="ratingWinner"></h2>
+
+            <div id="ratingList"></div>
+
+            <button onclick="restartGame()">
+                Играть снова / Қайта ойнау
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <script src="app.js"></script>
+
 </body>
 </html>
