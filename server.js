@@ -154,48 +154,65 @@ io.on('connection', (socket) => {
 
     socket.on('joinRoom', ({ roomId, playerName }) => {
 
-        const room = rooms[roomId];
+    roomId = roomId.trim().toUpperCase();
 
-        if (!room) {
-            return socket.emit(
-                'errorMsg',
-                'Комната не найдена!'
-            );
-        }
+    const room = rooms[roomId];
 
-        if (room.gameStarted) {
-            return socket.emit(
-                'errorMsg',
-                'Игра уже началась!'
-            );
-        }
-
-        if (![2, 3, 4, 6].includes(room.players.length + 1)) {
-            return socket.emit(
-                'errorMsg',
-                'В игре могут участвовать только 2, 3, 4 или 6 игроков!'
-            );
-        }
-
-        room.players.push({
-            id: socket.id,
-            name: playerName,
-            cards: [],
-            score: 0,
-            penalties: 0
-        });
-
-        socket.join(roomId);
-
-        io.to(roomId).emit(
-            'updatePlayers',
-            room.players
+    if (!room) {
+        return socket.emit(
+            'errorMsg',
+            'Комната не найдена!'
         );
+    }
 
-        console.log(
-            `Игрок ${playerName} присоединился к комнате ${roomId}`
+    if (room.gameStarted) {
+        return socket.emit(
+            'errorMsg',
+            'Игра уже началась!'
         );
+    }
+
+    // Разрешаем только 2, 3, 4 или 6 игроков
+    if (![2, 3, 4, 6].includes(room.players.length + 1)) {
+        return socket.emit(
+            'errorMsg',
+            'В игре могут участвовать только 2, 3, 4 или 6 игроков!'
+        );
+    }
+
+    const newPlayer = {
+        id: socket.id,
+        name: playerName,
+        cards: [],
+        score: 0,
+        penalties: 0
+    };
+
+    room.players.push(newPlayer);
+
+    socket.join(roomId);
+
+    // ==================================================
+    // САМОЕ ВАЖНОЕ
+    // Сообщаем именно этому игроку:
+    // ты вошёл в эту комнату
+    // ==================================================
+
+    socket.emit('roomJoined', {
+        roomId: roomId,
+        players: room.players
     });
+
+    // Обновляем список игроков У ВСЕХ
+    io.to(roomId).emit(
+        'updatePlayers',
+        room.players
+    );
+
+    console.log(
+        `Игрок ${playerName} присоединился к комнате ${roomId}`
+    );
+});
 
 
     // ==================================================
@@ -266,19 +283,33 @@ io.on('connection', (socket) => {
 
     socket.on('playCard', ({ roomId, cardId }) => {
 
-        const room = rooms[roomId];
-
-        if (!room || !room.gameStarted) {
-            return;
-        }
-
-        const player = room.players.find(
-            p => p.id === socket.id
+    if (!roomId) {
+        return socket.emit(
+            'errorMsg',
+            'Ошибка: игрок не находится в комнате.'
         );
+    }
 
-        if (!player) {
-            return;
-        }
+    const room = rooms[roomId];
+
+    if (!room) {
+        return socket.emit(
+            'errorMsg',
+            'Комната не найдена.'
+        );
+    }
+
+    if (!room.gameStarted) {
+        return;
+    }
+
+    const player = room.players.find(
+        p => p.id === socket.id
+    );
+
+    if (!player) {
+        return;
+    }
 
         const cardIndex = player.cards.findIndex(
             c => c.id === cardId

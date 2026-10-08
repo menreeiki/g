@@ -4,6 +4,9 @@ let currentRoomId = null;
 let currentLang = 'kk';
 let isHost = false;
 
+// Защита от повторного клика по карте
+let isCardClickLocked = false;
+
 
 // ======================================================
 // ПЕРЕВОДЫ
@@ -70,7 +73,6 @@ function setLanguage(lang) {
         .getElementById('btn-ru')
         .classList.toggle('active', lang === 'ru');
 
-
     document
         .querySelectorAll('[data-key]')
         .forEach(el => {
@@ -129,6 +131,7 @@ function createRoom() {
         return showModal(
             'Атыңызды енгізіңіз / Введите имя'
         );
+
     }
 
     isHost = true;
@@ -158,14 +161,13 @@ function joinRoom() {
             .trim()
             .toUpperCase();
 
-
     if (!name || !roomId) {
 
         return showModal(
             'Деректерді толық толтырыңыз / Заполните данные'
         );
-    }
 
+    }
 
     isHost = false;
 
@@ -197,6 +199,25 @@ socket.on('roomCreated', (roomId) => {
             }
         ]
     );
+
+});
+
+
+// ======================================================
+// ИГРОК УСПЕШНО ВОШЕЛ В КОМНАТУ
+// ======================================================
+
+socket.on('roomJoined', ({ roomId, players }) => {
+
+    currentRoomId = roomId;
+
+    isHost = false;
+
+    showWaitingRoom(
+        roomId,
+        players
+    );
+
 });
 
 
@@ -209,6 +230,7 @@ socket.on('updatePlayers', (players) => {
     updatePlayerList(players);
 
 });
+
 
 socket.on('errorMsg', (msg) => {
 
@@ -231,18 +253,14 @@ function showWaitingRoom(roomId, players) {
         .getElementById('waitingRoom')
         .classList.remove('hidden');
 
-
     document
         .getElementById('displayRoomCode')
         .textContent = roomId;
 
-
     updatePlayerList(players);
-
 
     const startBtn =
         document.getElementById('startBtn');
-
 
     if (startBtn) {
 
@@ -250,6 +268,7 @@ function showWaitingRoom(roomId, players) {
             isHost ? 'block' : 'none';
 
     }
+
 }
 
 
@@ -262,6 +281,7 @@ function updatePlayerList(players) {
         players
             .map(p => `<li>${p.name}</li>`)
             .join('');
+
 }
 
 
@@ -279,6 +299,7 @@ function hostStartGame() {
         );
 
     }
+
 }
 
 
@@ -289,6 +310,9 @@ function hostStartGame() {
 socket.on(
     'gameStarted',
     ({ players, tableCard, firstCard }) => {
+
+        // После начала игры снова разрешаем клик
+        isCardClickLocked = false;
 
         startGameInterface(
             players,
@@ -313,6 +337,10 @@ socket.on(
         firstCard
     }) => {
 
+        // Сервер сообщил новый ход —
+        // можно снова нажимать на карты
+        isCardClickLocked = false;
+
         startGameInterface(
             players,
             tableCard,
@@ -336,6 +364,10 @@ socket.on(
 // ======================================================
 
 socket.on('penalty', (data) => {
+
+    // После получения штрафа тоже разрешаем
+    // следующий отдельный клик
+    isCardClickLocked = false;
 
     showPenaltyScreen(
         data.message,
@@ -383,11 +415,13 @@ function startGameInterface(
             <div class="card center-card first-card-placeholder">
 
                 <div class="equation-text">
+
                     ${
                         currentLang === 'kk'
                         ? 'Бірінші картаны таңдаңыз!'
                         : 'Выберите первую карту!'
                     }
+
                 </div>
 
             </div>
@@ -487,14 +521,8 @@ function startGameInterface(
 
 
         // ==================================================
-        // ВАЖНО:
-        //
         // УГЛЫ = displayNumber
-        //
-        // НЕ answers!
-        //
-        // answers нужны только для проверки решения
-        // центрального уравнения на сервере.
+        // answers НЕ показываем
         // ==================================================
 
         cardDiv.innerHTML = `
@@ -522,31 +550,62 @@ function startGameInterface(
         `;
 
 
-        const handleCardClick = (e) => {
-
-            e.preventDefault();
-
-            socket.emit(
-                'playCard',
-                {
-                    roomId: currentRoomId,
-                    cardId: card.id
-                }
-            );
-
-        };
-
+        // ==================================================
+        // КЛИК ПО КАРТЕ
+        // ==================================================
 
         cardDiv.addEventListener(
             'click',
-            handleCardClick
+            function (e) {
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Если предыдущий клик ещё обрабатывается —
+                // ничего больше не отправляем
+                if (isCardClickLocked) {
+                    return;
+                }
+
+                // Без комнаты играть нельзя
+                if (!currentRoomId) {
+                    console.log(
+                        'Ошибка: currentRoomId отсутствует'
+                    );
+                    return;
+                }
+
+                // Блокируем повторное нажатие
+                isCardClickLocked = true;
+
+                console.log(
+                    'Карта отправлена:',
+                    card.id,
+                    'Комната:',
+                    currentRoomId
+                );
+
+                socket.emit(
+                    'playCard',
+                    {
+                        roomId: currentRoomId,
+                        cardId: card.id
+                    }
+                );
+
+            }
         );
 
 
-        cardDiv.addEventListener(
-            'touchend',
-            handleCardClick
-        );
+        // ==================================================
+        // ВАЖНО:
+        //
+        // touchend ЗДЕСЬ БОЛЬШЕ НЕТ.
+        //
+        // Иначе на некоторых устройствах одно касание
+        // вызывает touchend + click и карта отправляется
+        // два раза.
+        // ==================================================
 
 
         handEl.appendChild(cardDiv);
@@ -632,6 +691,8 @@ function closePenaltyScreen() {
 socket.on(
     'gameOver',
     ({ winner, ranking }) => {
+
+        isCardClickLocked = true;
 
         showRatingScreen(
             winner,
